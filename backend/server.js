@@ -1,69 +1,69 @@
-import path from 'path'
-import express, { json } from 'express'
-import dotenv from 'dotenv'
-import colors from 'colors'
-import morgan from 'morgan'
-import { notFound, errorHandler } from './middleware/errorMiddleware.js'
-import connectDB from './config/db.js'
+const path = require('path');
+const express = require('express');
+const dotenv = require('dotenv');
+const colors = require('colors');
+const morgan = require('morgan');
 
-import productRoutes from './routes/productRoutes.js'
-import userRoutes from './routes/userRoutes.js'
-import orderRoutes from './routes/orderRoutes.js'
-import uploadRoutes from './routes/uploadRoutes.js'
+const { notFound, errorHandler } = require('./middleware/errorMiddleware.js');
+const connectDB = require('./config/db.js');
 
-dotenv.config()
+const productRoutes = require('./routes/productRoutes.js');
+const userRoutes = require('./routes/userRoutes.js');
+const orderRoutes = require('./routes/orderRoutes.js');
+const uploadRoutes = require('./routes/uploadRoutes.js');
 
-// Invoke connectDB
-connectDB()
+// Load environment variables
+dotenv.config();
 
-const app = express()
+// Connect to MongoDB
+connectDB();
 
-// Run morgan ONLY if in development mode
-// morgan logs all activities
+const app = express();
+
+// Enable logging only in development
 if (process.env.NODE_ENV === 'development') {
-	app.use(morgan('dev'))
+	app.use(morgan('dev'));
 }
-app.use(express.json())
 
-// Mount routes to respective imports
-app.use('/api/products', productRoutes)
-app.use('/api/users', userRoutes)
-app.use('/api/orders', orderRoutes)
-app.use('/api/upload', uploadRoutes)
+// Parse incoming JSON
+app.use(express.json());
 
+// API Routes
+app.use('/api/products', productRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/upload', uploadRoutes);
+
+// PayPal Config Route
 app.get('/api/config/paypal', (req, res) =>
 	res.send(process.env.PAYPAL_CLIENT_ID)
-)
+);
 
-// Make uploads folder static
-const __dirname = path.resolve()
-app.use('/uploads', express.static(path.join(__dirname, '/uploads')))
+// Serve uploads folder statically
+const __dirnamePath = path.resolve();
+app.use('/uploads', express.static(path.join(__dirnamePath, '/uploads')));
 
-// Load build folder as static ONLY in production
+// Serve frontend in production
 if (process.env.NODE_ENV === 'production') {
-	app.use(express.static(path.join(__dirname, '/frontend/build')))
+	app.use(express.static(path.join(__dirnamePath, '/frontend/build')));
 	app.get('*', (req, res) =>
-		res.sendFile(path.resolve(__dirname, 'frontend', 'build', 'index.html'))
-	)
+		res.sendFile(path.resolve(__dirnamePath, 'frontend', 'build', 'index.html'))
+	);
 } else {
-	// test get route
 	app.get('/', (req, res) => {
-		res.send('API is running...')
-	})
+		res.send('API is running...');
+	});
 }
 
-// Error middleware for 404
-app.use(notFound)
+// Error handling middleware
+app.use(notFound);
+app.use(errorHandler);
 
-// Error handler middleware
-app.use(errorHandler)
-
-// Set port number
-const PORT = process.env.PORT || 8000
-
+// Start server
+const PORT = process.env.PORT || 8000;
 app.listen(
 	PORT,
 	console.log(
 		`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`.yellow.bold
 	)
-)
+);
